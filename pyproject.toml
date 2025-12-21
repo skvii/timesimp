@@ -4,5 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.14"
 dependencies = [
+    "dotenv>=0.9.9",
     "pandas>=2.3.3",
+    "pandas-stubs==2.3.3.251219",
+    "undetected-chromedriver>=3.5.5",
 ]
