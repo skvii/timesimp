@@ -1,6 +1,7 @@
 import os
 import time
 import pickle
+import json
 import undetected_chromedriver as uc
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
@@ -18,6 +19,7 @@ BASE_URL = "https://app.timechimp.com/auth/login"
 SESSIE_MAP = "cookies"
 SESSIE_BESTAND = "timechimp_compleet.pkl"
 SESSIE_PAD = os.path.join(SESSIE_MAP, SESSIE_BESTAND)
+PROFIEL_BESTAND = "profiel.json"
 
 
 # --- FUNCTIES ---
@@ -27,6 +29,7 @@ def start_driver():
     print("🚀 Browser wordt gestart...")
     options = uc.ChromeOptions()
     options.add_argument("--disable-restore-session-state")
+    options.add_argument("--headless=new")
 
     # Wachtwoord popup uitzetten
     prefs = {
@@ -122,9 +125,6 @@ def laad_sessie_in(driver):
         driver.execute_script("window.localStorage.clear();")
         # Dan vullen
         for key, value in local_storage.items():
-            # We moeten oppassen met quotes in de javascript string
-            # driver.execute_script(f"window.localStorage.setItem('{key}', '{value}');") is onveilig
-            # Veilige manier via arguments:
             driver.execute_script("window.localStorage.setItem(arguments[0], arguments[1]);", key, value)
 
         print("✅ Cookies & Local Storage geïnjecteerd.")
@@ -160,9 +160,10 @@ def login_met_wachtwoord(driver):
         ww.send_keys(WACHTWOORD)
         ww.send_keys(Keys.RETURN)
 
-        wait.until(EC.url_contains("dashboard"))
+        wait.until(lambda d: "login" not in d.current_url)
+        
         print("✅ Ingelogd! Even wachten op opslaan...")
-        time.sleep(5)  # Wacht tot alle tokens in LocalStorage staan
+        time.sleep(5)
         sla_sessie_op(driver)
 
     except Exception as e:
@@ -170,26 +171,150 @@ def login_met_wachtwoord(driver):
         raise e
 
 
-# --- HOOFD PROGRAMMA ---
+def klik_dag_knop(driver):
+    """Zoekt de knop met tekst 'Dag' en klikt erop."""
+    print("🔍 Zoeken naar 'Dag' knop...")
+    try:
+        wait = WebDriverWait(driver, 10)
+        xpath = "//button[.//span[text()='Dag']]"
+        knop = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+        knop.click()
+        print("✅ 'Dag' knop geklikt.")
+    except Exception as e:
+        print(f"❌ Kon 'Dag' knop niet vinden of klikken: {e}")
+
+def update_profiel(nieuwe_data):
+    """Voegt nieuwe data toe aan profiel.json."""
+    try:
+        if os.path.exists(PROFIEL_BESTAND):
+            with open(PROFIEL_BESTAND, 'r') as f:
+                profiel = json.load(f)
+        else:
+            profiel = {}
+        
+        profiel.update(nieuwe_data)
+        
+        with open(PROFIEL_BESTAND, 'w') as f:
+            json.dump(profiel, f, indent=4)
+        print(f"💾 Profiel bijgewerkt met: {list(nieuwe_data.keys())}")
+    except Exception as e:
+        print(f"❌ Kon profiel niet updaten: {e}")
+
+def kies_uit_dropdown(driver, input_id, naam_veld):
+    """
+    Algemene functie om een dropdown te openen, opties te tonen, gebruiker te laten kiezen en te klikken.
+    Returnt de gekozen tekst.
+    """
+    print(f"\n🔍 Zoeken naar dropdown: {naam_veld}...")
+    try:
+        wait = WebDriverWait(driver, 10)
+        
+        dropdown_input = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
+        dropdown_input.click()
+        time.sleep(1)
+
+        opties = driver.find_elements(By.CSS_SELECTOR, "div[id^='react-select'][role='option']")
+        if not opties:
+             opties = driver.find_elements(By.CSS_SELECTOR, "div[class*='option']")
+
+        if not opties:
+             print(f"⚠️ Geen opties gevonden voor {naam_veld}.")
+             return None
+
+        print(f"📋 Beschikbare opties voor {naam_veld}:")
+        optie_teksten = [optie.text for optie in opties]
+        
+        for i, tekst in enumerate(optie_teksten):
+            print(f"   [{i+1}] {tekst}")
+
+        if "Geen opties" in optie_teksten:
+             print(f"⚠️ Dropdown {naam_veld} bevat 'Geen opties'.")
+             return "GEEN_OPTIES"
+
+        while True:
+            keuze = input(f"👉 Kies een nummer voor {naam_veld}: ")
+            try:
+                index = int(keuze) - 1
+                if 0 <= index < len(opties):
+                    gekozen_optie = opties[index]
+                    gekozen_tekst = optie_teksten[index]
+                    
+                    gekozen_optie.click()
+                    print(f"✅ Geselecteerd: {gekozen_tekst}")
+                    time.sleep(1)
+                    return gekozen_tekst
+                else:
+                    print("Ongeldig nummer, probeer opnieuw.")
+            except ValueError:
+                print("Voer een geldig nummer in.")
+
+    except Exception as e:
+        print(f"❌ Fout bij dropdown {naam_veld}: {e}")
+        return None
+
+def selecteer_klant_project_activiteit(driver):
+    """Doorloopt de flow: Klant -> Project -> Activiteit."""
+    
+    klant = kies_uit_dropdown(driver, "customer", "Klant")
+    if not klant: return
+
+    project = kies_uit_dropdown(driver, "project", "Project")
+    
+    if project == "GEEN_OPTIES":
+        print("❌ Geen projecten beschikbaar voor deze klant.")
+        opnieuw = input("Wil je een andere klant kiezen? (j/n): ").lower()
+        if opnieuw == 'j':
+            driver.refresh()
+            time.sleep(3)
+            time.sleep(1)
+            selecteer_klant_project_activiteit(driver)
+            return
+        else:
+            return
+
+    if not project: return
+
+    activiteit = kies_uit_dropdown(driver, "projectTask", "Activiteit")
+    if not activiteit: return
+
+    nieuwe_data = {
+        "standaard_klant": klant,
+        "standaard_project": project,
+        "standaard_activiteit": activiteit
+    }
+    update_profiel(nieuwe_data)
+
 
 def main():
+    """Hoofdfunctie om de bot te draaien. Geeft de driver instance terug."""
     driver = start_driver()
 
-    # Altijd eerst naar de site voor context
     driver.get(BASE_URL)
 
-    # Probeer Pad X (Sessie herstellen)
+    ingelogd = False
     if laad_sessie_in(driver):
         print("🎉 Direct ingelogd via opgeslagen sessie!")
+        ingelogd = True
     else:
-        # Pad Y (Opnieuw inloggen)
         print("⚠️ Sessie laden mislukt of verlopen. We loggen opnieuw in.")
-        login_met_wachtwoord(driver)
+        try:
+            login_met_wachtwoord(driver)
+            ingelogd = True
+        except Exception:
+            print("❌ Kritieke fout bij inloggen.")
 
-    print("\nKlaar voor actie!")
-    input("Druk op ENTER om af te sluiten...")
-    driver.quit()
+    if ingelogd:
+        time.sleep(3)
+        time.sleep(1)
+        
+        selecteer_klant_project_activiteit(driver)
+    
+    return driver
 
 
 if __name__ == "__main__":
-    main()
+    # Dit stuk wordt alleen uitgevoerd als je bot.py direct runt
+    timechimp_driver = main()
+    print("\nKlaar voor actie!")
+    input("Druk op ENTER om af te sluiten...")
+    timechimp_driver.quit()
