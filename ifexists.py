@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 def if_env_exists(path='.env'):
@@ -18,5 +19,13 @@ def if_env_exists(path='.env'):
     else:
         # Path Y
         print(f"⚠️ {path} bestand bestaat niet, lees de readme.md")
+
+def check_bestanden(bestanden):
+    for bestand in bestanden:
+        if os.path.exists(bestand):
+            timestamp = os.path.getmtime(bestand)
+            datum_tijd = datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y %H:%M')
+            print(f"ℹ️  Bestand '{bestand}' bestaat al, is voor het laatst gewijzigd op {datum_tijd}")
+
 if __name__ == "__main__":
     if_env_exists()

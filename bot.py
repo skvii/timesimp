@@ -2,12 +2,14 @@ import os
 import time
 import pickle
 import json
+import pandas as pd
 import undetected_chromedriver as uc
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
 
 # --- CONFIGURATIE ---
 load_dotenv()
@@ -29,7 +31,7 @@ def start_driver():
     print("🚀 Browser wordt gestart...")
     options = uc.ChromeOptions()
     options.add_argument("--disable-restore-session-state")
-    options.add_argument("--headless=new")
+    #options.add_argument("--headless=new")
 
     # Wachtwoord popup uitzetten
     prefs = {
@@ -183,6 +185,17 @@ def klik_dag_knop(driver):
     except Exception as e:
         print(f"❌ Kon 'Dag' knop niet vinden of klikken: {e}")
 
+def klik_agenda(driver):
+    """Klikt op de agenda knop in de kalender container."""
+    print("🔍 Zoeken naar Agenda knop...")
+    try:
+        wait = WebDriverWait(driver, 10)
+        knop = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "section[aria-label='Calendar container'] button")))
+        knop.click()
+        print("✅ Agenda knop geklikt.")
+    except Exception as e:
+        print(f"❌ Kon Agenda knop niet vinden of klikken: {e}")
+
 def update_profiel(nieuwe_data):
     """Voegt nieuwe data toe aan profiel.json."""
     try:
@@ -284,6 +297,96 @@ def selecteer_klant_project_activiteit(driver):
     }
     update_profiel(nieuwe_data)
 
+def vul_dropdown_automatisch(driver, input_id, waarde):
+    """Vult een React-Select dropdown in op basis van tekst en drukt op Enter."""
+    try:
+        wait = WebDriverWait(driver, 10)
+        elem = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
+        
+        # Scroll naar het element om zeker te zijn dat het zichtbaar is (niet onder een header/kalender)
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elem)
+        time.sleep(0.25)
+        elem.send_keys(waarde)
+        elem.send_keys(Keys.RETURN)
+    except Exception as e:
+        print(f"   ⚠️ Kon dropdown {input_id} niet vullen met '{waarde}': {e}")
+
+def verwerk_uren_excel(driver):
+    """Leest uren.xlsx en selecteert voor elke regel de juiste datum in de kalender."""
+    print("\n📂 Uren bestand laden en verwerken...")
+    
+    if not os.path.exists('uren.xlsx'):
+        print("❌ Bestand 'uren.xlsx' niet gevonden.")
+        return
+
+    try:
+        df = pd.read_excel('uren.xlsx')
+        # Zorg dat datum kolom datetime objecten zijn
+        df['datum'] = pd.to_datetime(df['datum'])
+    except Exception as e:
+        print(f"❌ Fout bij lezen Excel: {e}")
+        return
+
+    wait = WebDriverWait(driver, 10)
+
+    for index, row in df.iterrows():
+        datum = row['datum']
+        datum_str = datum.strftime('%Y-%m-%d') # Formaat: 2025-12-01
+        maand_waarde = str(datum.month - 1) # HTML value is 0-indexed (Jan=0, Dec=11)
+        
+        print(f"📅 Bezig met regel {index + 1}: {datum_str}...")
+
+        try:
+            # 1. Maand controleren en selecteren
+            klik_agenda(driver)
+            maand_dropdown = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "rdp-months_dropdown")))
+            select = Select(maand_dropdown)
+            
+            if select.first_selected_option.get_attribute("value") != maand_waarde:
+                select.select_by_value(maand_waarde)
+                time.sleep(0.5) # Korte pauze voor UI update
+
+            # 2. Dag knop zoeken en klikken
+            # We zoeken de <td data-day="..."> en klikken op de <button> daarbinnen
+            dag_selector = f"td[data-day='{datum_str}'] button"
+            dag_knop = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, dag_selector)))
+            dag_knop.click()
+            print(f"   ✅ Datum {datum_str} geselecteerd.")
+            
+            # Kalender geforceerd sluiten door op de body te klikken
+            driver.find_element(By.TAG_NAME, 'body').click()
+            
+            # 3. Dropdowns invullen (Klant, Project, Activiteit)
+            vul_dropdown_automatisch(driver, "customer", row['klant'])
+            vul_dropdown_automatisch(driver, "project", row['project'])
+            vul_dropdown_automatisch(driver, "projectTask", row['activiteit'])
+
+            # 4. Tijden invullen
+            # Starttijd (vast op 09:00)
+            start_input = driver.find_element(By.ID, "start")
+            start_input.send_keys(Keys.CONTROL + "a")
+            start_input.send_keys(Keys.BACKSPACE)
+            start_input.send_keys("09:00")
+
+            # Eindtijd berekenen (9 + aantal uren)
+            time.sleep(0.1)
+            aantal_uren = float(row['aantal uren'])
+            eind_decimaal = 9.0 + aantal_uren
+            eind_uur = int(eind_decimaal)
+            eind_minuut = int((eind_decimaal - eind_uur) * 60)
+            eind_tijd_str = f"{eind_uur:02d}:{eind_minuut:02d}"
+            end_input = driver.find_element(By.ID, "end")
+            end_input.send_keys(eind_tijd_str)
+
+            # 5. Opslaan (Klik op 'Voeg uren toe')
+            submit_knop = driver.find_element(By.XPATH, "//button[@type='submit'][contains(., 'Voeg uren toe')]")
+            submit_knop.click()
+            
+            print(f"   💾 Opgeslagen: {row['klant']} - {aantal_uren} uur (09:00 - {eind_tijd_str})")
+            driver.refresh()
+            time.sleep(3) # Korte pauze voor de volgende iteratie
+        except Exception as e:
+            print(f"   ❌ Fout bij selecteren datum {datum_str}: {e}")
 
 def main():
     """Hoofdfunctie om de bot te draaien. Geeft de driver instance terug."""
@@ -305,12 +408,32 @@ def main():
 
     if ingelogd:
         time.sleep(3)
-        time.sleep(1)
-        
         selecteer_klant_project_activiteit(driver)
     
     return driver
 
+def nieuwe_automatisering():
+    """Nieuwe functie voor extra automatisering."""
+    driver = start_driver()
+    if driver:
+        print("🚀 Start nieuwe automatisering...")
+        ingelogd = False
+        if laad_sessie_in(driver):
+            print("🎉 Direct ingelogd via opgeslagen sessie!")
+            ingelogd = True
+        else:
+            print("⚠️ Sessie laden mislukt of verlopen. We loggen opnieuw in.")
+            try:
+                login_met_wachtwoord(driver)
+                ingelogd = True
+            except Exception:
+                print("❌ Kritieke fout bij inloggen.")
+
+        if ingelogd:
+            driver.get("https://app.timechimp.com/registration/time/day")
+        verwerk_uren_excel(driver)
+        
+    return driver
 
 if __name__ == "__main__":
     # Dit stuk wordt alleen uitgevoerd als je bot.py direct runt

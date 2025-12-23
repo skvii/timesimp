@@ -1,9 +1,9 @@
 # Dit is het hoofdbestand om de verschillende onderdelen van het project aan te sturen.
 
-from ifexists import if_env_exists
+from ifexists import if_env_exists, check_bestanden
 from profiel import laad_of_maak_profiel
 from dates import genereer_nederlandse_kalender, filter_kalender, voeg_uren_toe, voeg_adressen_en_kantoordag_toe, voeg_projectgegevens_toe, controleer_en_vul_contracturen
-from bot import main as run_bot_main # Geef de main functie een duidelijke naam
+from bot import main as run_bot_main, nieuwe_automatisering # Geef de main functie een duidelijke naam
 import pandas as pd
 
 # --- STAP 1: OMGEVING CONTROLEREN ---
@@ -24,17 +24,24 @@ else:
 
 if run_bot_vraag == 'j':
     print("\n--- Stap 3: Standaard keuzes instellen via browser ---")
-    # Roep de main functie van de bot aan, deze geeft de driver terug
-    timechimp_driver = run_bot_main() 
-    
-    print("\nBrowser acties zijn voltooid.")
-    input("Druk op ENTER om de browser te sluiten...")
-    timechimp_driver.quit()
+    try:
+        # Roep de main functie van de bot aan, deze geeft de driver terug
+        timechimp_driver = run_bot_main() 
+        
+        print("\nBrowser acties zijn voltooid.")
+        input("Druk op ENTER om de browser te sluiten...")
+        timechimp_driver.quit()
+    except Exception as e:
+        print(f"\n❌ Er ging iets mis met de browser bot: {e}")
+        print("We gaan verder met de rest van het script...")
 else:
     print("\nStap 3 overgeslagen.")
 
 # --- STAP 4: DATUMS SELECTEREN (OPTIONEEL) ---
-run_dates = input("\nWil je datums selecteren voor urenregistratie? (j/n): ").lower()
+# Check of bestanden al bestaan
+bestanden_lijst = ['alldata.xlsx', 'uren.xlsx', 'ritten.xlsx']
+check_bestanden(bestanden_lijst)
+run_dates = input("\nWil je datums selecteren voor een nieuwe urenregistratie? (j/n): ").lower()
 if run_dates == 'j':
     print("\n--- Stap 4: Datums selecteren ---")
     df_kalender = genereer_nederlandse_kalender()
@@ -126,9 +133,40 @@ if run_dates == 'j':
                     pd.set_option('display.max_columns', None)
                     pd.set_option('display.width', 1000)
                     print(df_final)
+                    
+                    # --- EXPORT NAAR EXCEL ---
+                    print("\n--- Exporteren naar Excel ---")
+                    
+                    while True:
+                        try:
+                            # Selecteer specinfieke kolommen voor uren en ritten
+                            uren_df = df_final[['datum', 'dag', 'aantal uren', 'klant', 'project', 'activiteit']]
+                            ritten_df = df_final[['datum', 'dag', 'adres_van', 'adres_naar', 'kantoordag', 'klant']]
+
+                            # Schrijf naar Excel bestanden
+                            df_final.to_excel('alldata.xlsx', index=False)
+                            uren_df.to_excel('uren.xlsx', index=False)
+                            ritten_df.to_excel('ritten.xlsx', index=False)
+                            
+                            print("✅ Data succesvol geëxporteerd naar:")
+                            print("   - alldata.xlsx")
+                            print("   - uren.xlsx")
+                            print("   - ritten.xlsx")
+                            break # Succes, dus uit de loop
+                        except PermissionError:
+                            print("\n❌ Fout: Een van de Excel-bestanden is geopend.")
+                            print("   Sluit de bestanden (alldata.xlsx, uren.xlsx, ritten.xlsx) en probeer opnieuw.")
+                            retry = input("   Druk op ENTER om opnieuw te proberen (of typ 'q' om te stoppen): ").lower()
+                            if retry == 'q':
+                                print("Export geannuleerd.")
+                                break
+                        except Exception as e:
+                            print(f"❌ Onverwachte fout bij exporteren: {e}")
+                            break
     else:
         print("\nGeen data gevonden of er ging iets mis.")
 else:
     print("\nStap 4 overgeslagen.")
+    nieuwe_automatisering()
 
 print("\nScript is klaar.")

@@ -99,12 +99,15 @@ def maak_profiel_aan():
         "contract_uren": contract_uren
     }
 
-    with open(PROFIEL_BESTAND, 'w') as f:
-        json.dump(profiel, f, indent=4)
-
-    print(f"\n✅ Profiel opgeslagen in {PROFIEL_BESTAND}")
-    toon_profiel_samenvatting(profiel)
-    return profiel
+    try:
+        with open(PROFIEL_BESTAND, 'w') as f:
+            json.dump(profiel, f, indent=4)
+        print(f"\n✅ Profiel opgeslagen in {PROFIEL_BESTAND}")
+        toon_profiel_samenvatting(profiel)
+        return profiel
+    except Exception as e:
+        print(f"❌ Fout bij opslaan profiel: {e}")
+        return profiel
 
 def laad_of_maak_profiel():
     """
@@ -114,9 +117,10 @@ def laad_of_maak_profiel():
     """
     if os.path.exists(PROFIEL_BESTAND):
         print(f"✅ Profiel ({PROFIEL_BESTAND}) gevonden.")
-        with open(PROFIEL_BESTAND, 'r') as f:
-            profiel = json.load(f)
-            
+        try:
+            with open(PROFIEL_BESTAND, 'r') as f:
+                profiel = json.load(f)
+                
             # Check of contract_uren bestaat, zo niet, vraag erom en sla op
             if 'contract_uren' not in profiel:
                 print("\n⚠️ Contracturen ontbreken in je profiel.")
@@ -125,9 +129,21 @@ def laad_of_maak_profiel():
                 with open(PROFIEL_BESTAND, 'w') as f_out:
                     json.dump(profiel, f_out, indent=4)
                 print("✅ Contracturen toegevoegd aan profiel.")
-
+            
             toon_profiel_samenvatting(profiel)
             return profiel
+            
+        except json.JSONDecodeError:
+            print(f"❌ Fout: {PROFIEL_BESTAND} is beschadigd of leeg.")
+            keuze = input("Wil je een nieuw profiel aanmaken? (j/n): ").lower()
+            if keuze == 'j':
+                return maak_profiel_aan()
+            else:
+                print("Kan niet verder zonder geldig profiel.")
+                exit()
+        except Exception as e:
+            print(f"❌ Onverwachte fout bij laden profiel: {e}")
+            exit()
     else:
         print(f"⚠️ Profiel ({PROFIEL_BESTAND}) niet gevonden.")
         return maak_profiel_aan()
