@@ -1,4 +1,6 @@
 # 🤖 TimeChimp Automatisering
+Ken je dat WhatsApp-berichtje dat je eraan herinnert dat je wéér je uren niet hebt ingevuld?
+Ik ook. Te vaak. Dus heb ik een automatisering gemaakt. Niet omdat het moest, maar omdat ik om jullie (en mijn mentale rust) geef.
 
 Welkom bij de **TimeChimp Automatiseringstool**. Dit script helpt je bij het genereren van urenregistraties, het exporteren naar Excel en het automatisch invullen van je uren in TimeChimp via een browser-bot.
 
