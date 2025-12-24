@@ -35,8 +35,7 @@ git clone https://github.com/skvii/timechimp.git
 ```
 
 ### 3. Omgeving opzetten
-Initialiseer het project en installeer de afhankelijkheden.
-
+ Maakt (indien nodig) de .venv aan, installeert de juiste Python-versie en zet de afhankelijkheden uit de lockfile.
 ```bash
 # Synchroniseer de omgeving (maakt de .venv aan)
 uv sync
