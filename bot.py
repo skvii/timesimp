@@ -26,17 +26,18 @@ PROFIEL_BESTAND = "profiel.json"
 
 # --- FUNCTIES ---
 
+
 def start_driver():
     """Start de browser met de juiste opties en schoont tabs op."""
     print("🚀 Browser wordt gestart...")
     options = uc.ChromeOptions()
     options.add_argument("--disable-restore-session-state")
-    #options.add_argument("--headless=new")
+    # options.add_argument("--headless=new")
 
     # Wachtwoord popup uitzetten
     prefs = {
         "credentials_enable_service": False,
-        "profile.password_manager_enabled": False
+        "profile.password_manager_enabled": False,
     }
     options.add_experimental_option("prefs", prefs)
 
@@ -52,7 +53,7 @@ def sluit_alle_andere_tabbladen(driver):
             driver.switch_to.window(driver.window_handles[-1])
             driver.close()
         driver.switch_to.window(driver.window_handles[0])
-    except:
+    except Exception:
         pass
 
 
@@ -60,9 +61,11 @@ def klik_cookie_popup_weg(driver):
     """Probeert de cookie banner weg te klikken."""
     try:
         wait = WebDriverWait(driver, 5)
-        knop = wait.until(EC.presence_of_element_located((
-            By.ID, "CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
-        )))
+        knop = wait.until(
+            EC.presence_of_element_located(
+                (By.ID, "CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll")
+            )
+        )
         driver.execute_script("arguments[0].click();", knop)
         print("✅ Cookie melding weggeklikt.")
         time.sleep(1)
@@ -81,17 +84,18 @@ def sla_sessie_op(driver):
 
         # 2. Haal Local Storage op (Hier zit waarschijnlijk je token!)
         # We gebruiken een JS trucje om alles als een dictionary terug te krijgen
-        local_storage = driver.execute_script("return Object.assign({}, window.localStorage);")
+        local_storage = driver.execute_script(
+            "return Object.assign({}, window.localStorage);"
+        )
 
-        sessie_data = {
-            "cookies": cookies,
-            "local_storage": local_storage
-        }
+        sessie_data = {"cookies": cookies, "local_storage": local_storage}
 
         with open(SESSIE_PAD, "wb") as file:
             pickle.dump(sessie_data, file)
 
-        print(f"💾 Volledige sessie (Cookies + LocalStorage) opgeslagen in: {SESSIE_PAD}")
+        print(
+            f"💾 Volledige sessie (Cookies + LocalStorage) opgeslagen in: {SESSIE_PAD}"
+        )
     except Exception as e:
         print(f"❌ Kon sessie niet opslaan: {e}")
 
@@ -116,7 +120,8 @@ def laad_sessie_in(driver):
         driver.delete_all_cookies()
         for cookie in cookies:
             try:
-                if 'domain' in cookie: del cookie['domain']  # Fix voor domein fouten
+                if "domain" in cookie:
+                    del cookie["domain"]  # Fix voor domein fouten
                 driver.add_cookie(cookie)
             except:
                 continue
@@ -127,7 +132,9 @@ def laad_sessie_in(driver):
         driver.execute_script("window.localStorage.clear();")
         # Dan vullen
         for key, value in local_storage.items():
-            driver.execute_script("window.localStorage.setItem(arguments[0], arguments[1]);", key, value)
+            driver.execute_script(
+                "window.localStorage.setItem(arguments[0], arguments[1]);", key, value
+            )
 
         print("✅ Cookies & Local Storage geïnjecteerd.")
 
@@ -163,7 +170,7 @@ def login_met_wachtwoord(driver):
         ww.send_keys(Keys.RETURN)
 
         wait.until(lambda d: "login" not in d.current_url)
-        
+
         print("✅ Ingelogd! Even wachten op opslaan...")
         time.sleep(5)
         sla_sessie_op(driver)
@@ -185,33 +192,40 @@ def klik_dag_knop(driver):
     except Exception as e:
         print(f"❌ Kon 'Dag' knop niet vinden of klikken: {e}")
 
+
 def klik_agenda(driver):
     """Klikt op de agenda knop in de kalender container."""
     print("🔍 Zoeken naar Agenda knop...")
     try:
         wait = WebDriverWait(driver, 10)
-        knop = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "section[aria-label='Calendar container'] button")))
+        knop = wait.until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "section[aria-label='Calendar container'] button")
+            )
+        )
         knop.click()
         print("✅ Agenda knop geklikt.")
     except Exception as e:
         print(f"❌ Kon Agenda knop niet vinden of klikken: {e}")
 
+
 def update_profiel(nieuwe_data):
     """Voegt nieuwe data toe aan profiel.json."""
     try:
         if os.path.exists(PROFIEL_BESTAND):
-            with open(PROFIEL_BESTAND, 'r') as f:
+            with open(PROFIEL_BESTAND, "r") as f:
                 profiel = json.load(f)
         else:
             profiel = {}
-        
+
         profiel.update(nieuwe_data)
-        
-        with open(PROFIEL_BESTAND, 'w') as f:
+
+        with open(PROFIEL_BESTAND, "w") as f:
             json.dump(profiel, f, indent=4)
         print(f"💾 Profiel bijgewerkt met: {list(nieuwe_data.keys())}")
     except Exception as e:
         print(f"❌ Kon profiel niet updaten: {e}")
+
 
 def kies_uit_dropdown(driver, input_id, naam_veld):
     """
@@ -221,28 +235,30 @@ def kies_uit_dropdown(driver, input_id, naam_veld):
     print(f"\n🔍 Zoeken naar dropdown: {naam_veld}...")
     try:
         wait = WebDriverWait(driver, 10)
-        
+
         dropdown_input = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
         dropdown_input.click()
         time.sleep(1)
 
-        opties = driver.find_elements(By.CSS_SELECTOR, "div[id^='react-select'][role='option']")
+        opties = driver.find_elements(
+            By.CSS_SELECTOR, "div[id^='react-select'][role='option']"
+        )
         if not opties:
-             opties = driver.find_elements(By.CSS_SELECTOR, "div[class*='option']")
+            opties = driver.find_elements(By.CSS_SELECTOR, "div[class*='option']")
 
         if not opties:
-             print(f"⚠️ Geen opties gevonden voor {naam_veld}.")
-             return None
+            print(f"⚠️ Geen opties gevonden voor {naam_veld}.")
+            return None
 
         print(f"📋 Beschikbare opties voor {naam_veld}:")
         optie_teksten = [optie.text for optie in opties]
-        
+
         for i, tekst in enumerate(optie_teksten):
-            print(f"   [{i+1}] {tekst}")
+            print(f"   [{i + 1}] {tekst}")
 
         if "Geen opties" in optie_teksten:
-             print(f"⚠️ Dropdown {naam_veld} bevat 'Geen opties'.")
-             return "GEEN_OPTIES"
+            print(f"⚠️ Dropdown {naam_veld} bevat 'Geen opties'.")
+            return "GEEN_OPTIES"
 
         while True:
             keuze = input(f"👉 Kies een nummer voor {naam_veld}: ")
@@ -251,7 +267,7 @@ def kies_uit_dropdown(driver, input_id, naam_veld):
                 if 0 <= index < len(opties):
                     gekozen_optie = opties[index]
                     gekozen_tekst = optie_teksten[index]
-                    
+
                     gekozen_optie.click()
                     print(f"✅ Geselecteerd: {gekozen_tekst}")
                     time.sleep(1)
@@ -265,18 +281,20 @@ def kies_uit_dropdown(driver, input_id, naam_veld):
         print(f"❌ Fout bij dropdown {naam_veld}: {e}")
         return None
 
+
 def selecteer_klant_project_activiteit(driver):
     """Doorloopt de flow: Klant -> Project -> Activiteit."""
-    
+
     klant = kies_uit_dropdown(driver, "customer", "Klant")
-    if not klant: return
+    if not klant:
+        return
 
     project = kies_uit_dropdown(driver, "project", "Project")
-    
+
     if project == "GEEN_OPTIES":
         print("❌ Geen projecten beschikbaar voor deze klant.")
         opnieuw = input("Wil je een andere klant kiezen? (j/n): ").lower()
-        if opnieuw == 'j':
+        if opnieuw == "j":
             driver.refresh()
             time.sleep(3)
             time.sleep(1)
@@ -285,24 +303,27 @@ def selecteer_klant_project_activiteit(driver):
         else:
             return
 
-    if not project: return
+    if not project:
+        return
 
     activiteit = kies_uit_dropdown(driver, "projectTask", "Activiteit")
-    if not activiteit: return
+    if not activiteit:
+        return
 
     nieuwe_data = {
         "standaard_klant": klant,
         "standaard_project": project,
-        "standaard_activiteit": activiteit
+        "standaard_activiteit": activiteit,
     }
     update_profiel(nieuwe_data)
+
 
 def vul_dropdown_automatisch(driver, input_id, waarde):
     """Vult een React-Select dropdown in op basis van tekst en drukt op Enter."""
     try:
         wait = WebDriverWait(driver, 10)
         elem = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
-        
+
         # Scroll naar het element om zeker te zijn dat het zichtbaar is (niet onder een header/kalender)
         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elem)
         time.sleep(0.25)
@@ -311,18 +332,19 @@ def vul_dropdown_automatisch(driver, input_id, waarde):
     except Exception as e:
         print(f"   ⚠️ Kon dropdown {input_id} niet vullen met '{waarde}': {e}")
 
+
 def verwerk_uren_excel(driver):
     """Leest uren.xlsx en selecteert voor elke regel de juiste datum in de kalender."""
     print("\n📂 Uren bestand laden en verwerken...")
-    
-    if not os.path.exists('uren.xlsx'):
+
+    if not os.path.exists("uren.xlsx"):
         print("❌ Bestand 'uren.xlsx' niet gevonden.")
         return
 
     try:
-        df = pd.read_excel('uren.xlsx')
+        df = pd.read_excel("uren.xlsx")
         # Zorg dat datum kolom datetime objecten zijn
-        df['datum'] = pd.to_datetime(df['datum'])
+        df["datum"] = pd.to_datetime(df["datum"])
     except Exception as e:
         print(f"❌ Fout bij lezen Excel: {e}")
         return
@@ -330,38 +352,58 @@ def verwerk_uren_excel(driver):
     wait = WebDriverWait(driver, 10)
 
     for index, row in df.iterrows():
-        datum = row['datum']
-        datum_str = datum.strftime('%Y-%m-%d') # Formaat: 2025-12-01
-        maand_waarde = str(datum.month - 1) # HTML value is 0-indexed (Jan=0, Dec=11)
-        
+        datum = row["datum"]
+        datum_str = datum.strftime("%Y-%m-%d")  # Formaat: 2025-12-01
+        maand_waarde = str(datum.month - 1)  # HTML value is 0-indexed (Jan=0, Dec=11)
+        jaar_waarde = str(datum.year)
+
         print(f"📅 Bezig met regel {index + 1}: {datum_str}...")
 
         try:
-            # 1. Maand controleren en selecteren
+            # 1. Agenda openen
             klik_agenda(driver)
-            maand_dropdown = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "rdp-months_dropdown")))
-            select = Select(maand_dropdown)
-            
-            if select.first_selected_option.get_attribute("value") != maand_waarde:
-                select.select_by_value(maand_waarde)
-                time.sleep(0.5) # Korte pauze voor UI update
 
-            # 2. Dag knop zoeken en klikken
+            # 2. Jaar controleren en selecteren
+            jaar_dropdown = wait.until(
+                EC.presence_of_element_located((By.CLASS_NAME, "rdp-years_dropdown"))
+            )
+            select_jaar = Select(jaar_dropdown)
+
+            if select_jaar.first_selected_option.get_attribute("value") != jaar_waarde:
+                select_jaar.select_by_value(jaar_waarde)
+                time.sleep(0.5)  # Korte pauze voor UI update
+
+            # 3. Maand controleren en selecteren
+            maand_dropdown = wait.until(
+                EC.presence_of_element_located((By.CLASS_NAME, "rdp-months_dropdown"))
+            )
+            select_maand = Select(maand_dropdown)
+
+            if (
+                select_maand.first_selected_option.get_attribute("value")
+                != maand_waarde
+            ):
+                select_maand.select_by_value(maand_waarde)
+                time.sleep(0.5)  # Korte pauze voor UI update
+
+            # 4. Dag knop zoeken en klikken
             # We zoeken de <td data-day="..."> en klikken op de <button> daarbinnen
             dag_selector = f"td[data-day='{datum_str}'] button"
-            dag_knop = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, dag_selector)))
+            dag_knop = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, dag_selector))
+            )
             dag_knop.click()
             print(f"   ✅ Datum {datum_str} geselecteerd.")
-            
-            # Kalender geforceerd sluiten door op de body te klikken
-            driver.find_element(By.TAG_NAME, 'body').click()
-            
-            # 3. Dropdowns invullen (Klant, Project, Activiteit)
-            vul_dropdown_automatisch(driver, "customer", row['klant'])
-            vul_dropdown_automatisch(driver, "project", row['project'])
-            vul_dropdown_automatisch(driver, "projectTask", row['activiteit'])
 
-            # 4. Tijden invullen
+            # Kalender geforceerd sluiten door op de body te klikken
+            driver.find_element(By.TAG_NAME, "body").click()
+
+            # 5. Dropdowns invullen (Klant, Project, Activiteit)
+            vul_dropdown_automatisch(driver, "customer", row["klant"])
+            vul_dropdown_automatisch(driver, "project", row["project"])
+            vul_dropdown_automatisch(driver, "projectTask", row["activiteit"])
+
+            # 6. Tijden invullen
             # Starttijd (vast op 09:00)
             start_input = driver.find_element(By.ID, "start")
             start_input.send_keys(Keys.CONTROL + "a")
@@ -370,7 +412,7 @@ def verwerk_uren_excel(driver):
 
             # Eindtijd berekenen (9 + aantal uren)
             time.sleep(0.1)
-            aantal_uren = float(row['aantal uren'])
+            aantal_uren = float(row["aantal uren"])
             eind_decimaal = 9.0 + aantal_uren
             eind_uur = int(eind_decimaal)
             eind_minuut = int((eind_decimaal - eind_uur) * 60)
@@ -378,15 +420,20 @@ def verwerk_uren_excel(driver):
             end_input = driver.find_element(By.ID, "end")
             end_input.send_keys(eind_tijd_str)
 
-            # 5. Opslaan (Klik op 'Voeg uren toe')
-            submit_knop = driver.find_element(By.XPATH, "//button[@type='submit'][contains(., 'Voeg uren toe')]")
+            # 7. Opslaan (Klik op 'Voeg uren toe')
+            submit_knop = driver.find_element(
+                By.XPATH, "//button[@type='submit'][contains(., 'Voeg uren toe')]"
+            )
             submit_knop.click()
-            
-            print(f"   💾 Opgeslagen: {row['klant']} - {aantal_uren} uur (09:00 - {eind_tijd_str})")
+
+            print(
+                f"   💾 Opgeslagen: {row['klant']} - {aantal_uren} uur (09:00 - {eind_tijd_str})"
+            )
             driver.refresh()
-            time.sleep(3) # Korte pauze voor de volgende iteratie
+            time.sleep(3)  # Korte pauze voor de volgende iteratie
         except Exception as e:
             print(f"   ❌ Fout bij selecteren datum {datum_str}: {e}")
+
 
 def main():
     """Hoofdfunctie om de bot te draaien. Geeft de driver instance terug."""
@@ -409,8 +456,9 @@ def main():
     if ingelogd:
         time.sleep(3)
         selecteer_klant_project_activiteit(driver)
-    
+
     return driver
+
 
 def nieuwe_automatisering():
     """Nieuwe functie voor extra automatisering."""
@@ -432,8 +480,9 @@ def nieuwe_automatisering():
         if ingelogd:
             driver.get("https://app.timechimp.com/registration/time/day")
         verwerk_uren_excel(driver)
-        
+
     return driver
+
 
 if __name__ == "__main__":
     # Dit stuk wordt alleen uitgevoerd als je bot.py direct runt

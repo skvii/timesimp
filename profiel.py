@@ -1,7 +1,9 @@
 import json
 import os
+import time
 
 PROFIEL_BESTAND = "profiel.json"
+
 
 def vraag_en_valideer(vraag, type_conversie=str):
     """Blijft een vraag stellen tot een geldig antwoord is gegeven."""
@@ -13,13 +15,16 @@ def vraag_en_valideer(vraag, type_conversie=str):
         try:
             return type_conversie(antwoord)
         except ValueError:
-            print(f"Ongeldige invoer. Voer een waarde van het type '{type_conversie.__name__}' in.")
+            print(
+                f"Ongeldige invoer. Voer een waarde van het type '{type_conversie.__name__}' in."
+            )
+
 
 def vraag_dagen(vraag):
     """Vraagt om een lijst van dagen, gescheiden door komma's."""
     while True:
         dagen_str = input(vraag).lower()
-        dagen_lijst = [dag.strip() for dag in dagen_str.split(',') if dag.strip()]
+        dagen_lijst = [dag.strip() for dag in dagen_str.split(",") if dag.strip()]
         if not dagen_lijst:
             print("Voer minimaal één dag in.")
             continue
@@ -35,24 +40,28 @@ def vraag_adres(type_adres):
     stad = vraag_en_valideer("Stad: (bv. Rotterdam)")
     return f"{straat} {huisnummer}, {stad}, Nederland"
 
+
 def toon_profiel_samenvatting(profiel):
     """Print een nette samenvatting van het geladen profiel."""
-    print("\n📋 --- Profiel Samenvatting ---")
-    
+    time.sleep(1)
+    print("\n📋 ..::: Profiel Samenvatting :::..")
+
     print("   🕒 Uren per dag:")
-    uren_per_dag = profiel.get('uren_per_dag', {})
+    uren_per_dag = profiel.get("uren_per_dag", {})
     for dag, uren in uren_per_dag.items():
         print(f"      - {dag.capitalize()}: {uren} uur")
 
     print(f"   🏠 Huisadres:         {profiel.get('adres_huis')}")
     print(f"   🏢 Werkadres:         {profiel.get('adres_opdrachtgever')}")
-    print(f"   💼 Kantoordagen:      {', '.join(profiel.get('standaard_kantoordagen', []))}")
+    print(
+        f"   💼 Kantoordagen:      {', '.join(profiel.get('standaard_kantoordagen', []))}"
+    )
     print(f"   📄 Contracturen:      {profiel.get('contract_uren', 'Onbekend')}")
-    
+
     # Nieuwe velden tonen
-    klant = profiel.get('standaard_klant')
-    project = profiel.get('standaard_project')
-    activiteit = profiel.get('standaard_activiteit')
+    klant = profiel.get("standaard_klant")
+    project = profiel.get("standaard_project")
+    activiteit = profiel.get("standaard_activiteit")
 
     print("\n   📌 Standaard Instellingen:")
     if klant and project and activiteit:
@@ -64,6 +73,7 @@ def toon_profiel_samenvatting(profiel):
 
     print("------------------------------\n")
 
+
 def maak_profiel_aan():
     """Stelt vragen aan de gebruiker en bouwt een profiel dictionary op."""
     print("--- Nieuw profiel aanmaken ---")
@@ -71,7 +81,7 @@ def maak_profiel_aan():
 
     # 1. Werkdagen vragen
     werkdagen = vraag_dagen("Op welke dagen werk je normaal? (ma,di,wo,do,vr): ")
-    
+
     # 2. Uren per dag vragen
     uren_per_dag = {}
     print("\nHoeveel uur werk je op deze dagen? (in getallen dus bv. 4 of 8")
@@ -85,10 +95,12 @@ def maak_profiel_aan():
 
     # 4. Kantoordagen vragen
     kantoordagen = vraag_dagen("\nWat zijn je standaard kantoordagen? (bijv. di,do): ")
-    
+
     # 5. Contracturen vragen
     print("\n--- Contractgegevens ---")
-    contract_uren = vraag_en_valideer("Hoeveel uur is je contract per week? (bv. 32, 36, 40): ", float)
+    contract_uren = vraag_en_valideer(
+        "Hoeveel uur is je contract per week? (bv. 32, 36, 40): ", float
+    )
 
     profiel = {
         "standaard_werkdagen": werkdagen,
@@ -96,11 +108,11 @@ def maak_profiel_aan():
         "adres_huis": adres_huis,
         "adres_opdrachtgever": adres_werk,
         "standaard_kantoordagen": kantoordagen,
-        "contract_uren": contract_uren
+        "contract_uren": contract_uren,
     }
 
     try:
-        with open(PROFIEL_BESTAND, 'w') as f:
+        with open(PROFIEL_BESTAND, "w") as f:
             json.dump(profiel, f, indent=4)
         print(f"\n✅ Profiel opgeslagen in {PROFIEL_BESTAND}")
         toon_profiel_samenvatting(profiel)
@@ -108,6 +120,7 @@ def maak_profiel_aan():
     except Exception as e:
         print(f"❌ Fout bij opslaan profiel: {e}")
         return profiel
+
 
 def laad_of_maak_profiel():
     """
@@ -118,25 +131,27 @@ def laad_of_maak_profiel():
     if os.path.exists(PROFIEL_BESTAND):
         print(f"✅ Profiel ({PROFIEL_BESTAND}) gevonden.")
         try:
-            with open(PROFIEL_BESTAND, 'r') as f:
+            with open(PROFIEL_BESTAND, "r") as f:
                 profiel = json.load(f)
-                
+
             # Check of contract_uren bestaat, zo niet, vraag erom en sla op
-            if 'contract_uren' not in profiel:
+            if "contract_uren" not in profiel:
                 print("\n⚠️ Contracturen ontbreken in je profiel.")
-                contract_uren = vraag_en_valideer("Hoeveel uur is je contract per week? (bv. 32, 36, 40): ", float)
-                profiel['contract_uren'] = contract_uren
-                with open(PROFIEL_BESTAND, 'w') as f_out:
+                contract_uren = vraag_en_valideer(
+                    "Hoeveel uur is je contract per week? (bv. 32, 36, 40): ", float
+                )
+                profiel["contract_uren"] = contract_uren
+                with open(PROFIEL_BESTAND, "w") as f_out:
                     json.dump(profiel, f_out, indent=4)
                 print("✅ Contracturen toegevoegd aan profiel.")
-            
+
             toon_profiel_samenvatting(profiel)
             return profiel
-            
+
         except json.JSONDecodeError:
             print(f"❌ Fout: {PROFIEL_BESTAND} is beschadigd of leeg.")
             keuze = input("Wil je een nieuw profiel aanmaken? (j/n): ").lower()
-            if keuze == 'j':
+            if keuze == "j":
                 return maak_profiel_aan()
             else:
                 print("Kan niet verder zonder geldig profiel.")
