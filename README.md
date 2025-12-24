@@ -1,4 +1,4 @@
-<img src="timesimp.jpg" alt="Screenshot" width="50%"/>
+<img src="timesimp.jpg" alt="Screenshot" width="30%"/>
 # 🤖 TimeChimp Automatisering
 Ken je dat WhatsApp-berichtje dat je eraan herinnert dat je wéér je uren niet hebt ingevuld?
 Ik ook. Te vaak. Dus heb ik een automatisering gemaakt. Niet omdat het moest, maar omdat ik om jullie (en mijn mentale rust) geef.
