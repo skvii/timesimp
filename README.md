@@ -1,27 +1,22 @@
 <img src="timesimp.jpg" alt="Screenshot" width="30%"/>
-# 🤖 TimeChimp Automatisering
+ 
+## 🤖 TimeSimp
 Ken je dat WhatsApp-berichtje dat je eraan herinnert dat je wéér je uren niet hebt ingevuld?
 Ik ook. Te vaak. Dus heb ik een automatisering gemaakt. Niet omdat het moest, maar omdat ik om jullie (en mijn mentale rust) geef.
 
-Welkom bij de **TimeChimp Automatiseringstool**. Dit script helpt je bij het genereren van urenregistraties, het exporteren naar Excel en het automatisch invullen van je uren in TimeChimp via een browser-bot.
+Welkom bij dé **TimeChimp Automatiseringstool**. Dit script helpt je bij het genereren van urenregistraties, het exporteren naar Excel en het automatisch invullen van je uren in TimeChimp via een browser-bot.
 
-> ⚠️ **LET OP: Eerste Versie (Beta)**  
+> ⚠️ **LET OP: gebruik op eigen risico!**  
+> 
 > Dit is een eerste versie van de software. Er kan nog van alles misgaan.  
+> 
 > **Controleer altijd handmatig** in TimeChimp of de uren, projecten en datums correct zijn ingevoerd voordat je ze definitief indient. Gebruik is op eigen risico.
 
 ## 🚀 Installatie
 
 Volg onderstaande stappen om het project lokaal draaiende te krijgen. We maken gebruik van **uv** voor razendsnel package management.
 
-### 1. Project Clonen
-Haal de code binnen via git:
-
-```bash
-git clone https://github.com/skvii/timechimp.git
-cd timechimp
-```
-
-### 2. UV Installeren (Globaal)
+### 1. UV Installeren (Globaal)
 Als je `uv` nog niet hebt, installeer deze dan eerst globaal op je systeem:
 
 ```bash
@@ -32,14 +27,17 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 pip install uv
 ```
 
+### 2. Project Clonen
+Haal de code binnen via git (voer dit uit binnen een map waar je de repo wilt hebben):
+
+```bash
+git clone https://github.com/skvii/timechimp.git
+```
+
 ### 3. Omgeving opzetten
 Initialiseer het project en installeer de afhankelijkheden.
 
 ```bash
-# Initialiseer een nieuw project (maakt pyproject.toml aan indien niet aanwezig)
-uv init
-
-
 # Synchroniseer de omgeving (maakt de .venv aan)
 uv sync
 ```
@@ -55,8 +53,9 @@ TIMECHIMP_EMAIL=jouw.email@voorbeeld.nl
 TIMECHIMP_PASSWORD=JouwGeheimeWachtwoord123!
 ```
 
-*Opmerking: Dit bestand wordt niet gedeeld via Git, dus je wachtwoord blijft lokaal.*
-*Opmerking2: Gebruik .env.example als voorbeeld.*
+*Opmerking: dit bestand wordt niet gedeeld via Git, dus je wachtwoord blijft lokaal.*
+
+*Opmerking2: Gebruik .env.example als voorbeeld.
 
 ## 🖥️ Gebruik
 
