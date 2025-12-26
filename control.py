@@ -1,6 +1,5 @@
 # Dit is het hoofdbestand om de verschillende onderdelen van het project aan te sturen.
-
-from ifexists import if_env_exists, check_bestanden
+from ifexists import if_env_exists, check_bestanden, clear
 from profiel import laad_of_maak_profiel
 from dates import (
     genereer_nederlandse_kalender,
@@ -13,20 +12,19 @@ from dates import (
 from bot import (
     main as run_bot_main,
     nieuwe_automatisering,
-)  # Geef de main functie een duidelijke naam
+    ritten_invullen,
+)
+
 import pandas as pd
 import time
 import sys
 
-# --- STAP 1: OMGEVING CONTROLEREN ---
-print("..::: Check (1/2): .env bestand controleren :::..")
+print("-- check 1: bestaat .env bestand?")
 if_env_exists()
-time.sleep(1)
 
-# --- STAP 2: PROFIEL LADEN OF AANMAKEN ---
+
 print("\n..::: Check (2/2): Profiel laden ::..")
 profiel_data = laad_of_maak_profiel()
-time.sleep(1)
 
 # --- STAP 3: STANDAARD KEUZES BIJWERKEN (OPTIONEEL) ---
 # Vragen of de gebruiker de standaard klant/project/activiteit wil instellen/bijwerken
@@ -77,7 +75,7 @@ if run_dates == "j":
 
         # Uren toevoegen
         print("\n--- Uren berekenen op basis van profiel ---")
-        df_met_uren = voeg_uren_toe(mijn_selectie)
+        df_met_uren = voeg_uren_toe(mijn_selectie, profiel_data)
 
         if df_met_uren is not None:
             # Vraag om weekenddagen te verwijderen
@@ -150,16 +148,16 @@ if run_dates == "j":
 
             # --- ADRESSEN EN KANTOORDAGEN TOEVOEGEN ---
             print("\n--- Adressen en kantoordagen toevoegen ---")
-            df_compleet = voeg_adressen_en_kantoordag_toe(df_met_uren)
+            df_compleet = voeg_adressen_en_kantoordag_toe(df_met_uren, profiel_data)
 
             if df_compleet is not None:
                 # --- PROJECTGEGEVENS TOEVOEGEN ---
                 print("\n--- Projectgegevens toevoegen ---")
-                df_final = voeg_projectgegevens_toe(df_compleet)
+                df_final = voeg_projectgegevens_toe(df_compleet, profiel_data)
 
                 # --- CONTRACTUREN CONTROLEREN ---
                 print("\n--- Contracturen controleren ---")
-                df_final = controleer_en_vul_contracturen(df_final)
+                df_final = controleer_en_vul_contracturen(df_final, profiel_data)
 
                 if df_final is not None:
                     print("\nVolledige urenregistratie tabel:")
@@ -184,6 +182,9 @@ if run_dates == "j":
                                     "activiteit",
                                 ]
                             ]
+
+                            # --- RITTEN FILTEREN ---
+                            # 1. Selecteer kolommen
                             ritten_df = df_final[
                                 [
                                     "datum",
@@ -192,8 +193,25 @@ if run_dates == "j":
                                     "adres_naar",
                                     "kantoordag",
                                     "klant",
+                                    "RBI_friday",
+                                    "project",
                                 ]
                             ]
+
+                            # 2. Filter op kantoordag='ja' OF RBI_friday='ja'
+                            ritten_df = ritten_df[
+                                (ritten_df["kantoordag"] == "ja")
+                                | (ritten_df["RBI_friday"] == "ja")
+                            ]
+
+                            # 3. Ontdubbelen op datum (behoud eerste)
+                            ritten_df = ritten_df.drop_duplicates(
+                                subset=["datum"], keep="first"
+                            )
+
+                            # Verwijder RBI_friday kolom weer voor de export (optioneel, maar netter)
+                            if "RBI_friday" in ritten_df.columns:
+                                ritten_df = ritten_df.drop(columns=["RBI_friday"])
 
                             # Schrijf naar Excel bestanden
                             df_final.to_excel("alldata.xlsx", index=False)
@@ -222,33 +240,34 @@ if run_dates == "j":
     else:
         print("\nGeen data gevonden of er ging iets mis.")
 else:
-    print("\n⏭️  Stap 4 overgeslagen...")
-    print("\n🚀 In de volgende stap worden de uren automatisch in TimeChimp gezet.")
-    print(
-        "   Hierbij wordt gebruik gemaakt van de bestanden: 'uren.xlsx', 'ritten.xlsx' en 'alldata.xlsx'."
-    )
-    print(
-        "\n⚠️  Wil je nog handmatige wijzigingen doen in de Excel-bestanden? Doe dat dan NU."
-    )
-    print(
-        "   Als je nog geen template hebt gemaakt, start het script dan opnieuw en kies 'j' bij Stap 4."
-    )
-    input("\nDruk op ENTER om de automatisering te starten...")
+    print("\n⏭️  Geen nieuwe uren/ritten geschreven...")
 
-    # start uitvoeren van uren registratie
-    nieuwe_automatisering()
-    sys.exit()
-
-print("\nScript is klaar.")
 print("\n🚀 In de volgende stap worden de uren automatisch in TimeChimp gezet.")
 print(
     "   Hierbij wordt gebruik gemaakt van de bestanden: 'uren.xlsx', 'ritten.xlsx' en 'alldata.xlsx'."
 )
 print(
-    "\n⚠️  Wil je nog handmatige wijzigingen doen in de Excel-bestanden? Doe dat dan NU."
+    "\n⚠️  Wil je nog handmatige wijzigingen doen in de Excel-bestanden? Doe dat dan NU. Lees eventueel README.MD."
 )
 print(
     "   Als je nog geen template hebt gemaakt, start het script dan opnieuw en kies 'j' bij Stap 4."
 )
-input("\nDruk op ENTER om de automatisering te starten...")
-nieuwe_automatisering()
+startornot = input(
+    "\nDruk op ENTER om de automatisering te starten... (of q om te sluiten)"
+).lower()
+if startornot == "q":
+    sys.exit()
+
+run_mileageorhours = input(
+    "\nWat wil je doen?\n⏱️ 1. Uren boeken\n🚗 2. Ritten boeken\n🔃 3. Uren & ritten boeken\nKeuze: "
+)
+
+if run_mileageorhours == "1":
+    nieuwe_automatisering()
+elif run_mileageorhours == "2":
+    ritten_invullen()
+elif run_mileageorhours == "3":
+    nieuwe_automatisering()
+    ritten_invullen()
+
+sys.exit()

@@ -131,14 +131,7 @@ def filter_kalender(df):
 
 
 # --- FUNCTIE 3: BEREKEN WERKUREN ---
-def voeg_uren_toe(mijn_selectie):
-    try:
-        with open("profiel.json", "r") as f:
-            profiel = json.load(f)
-    except FileNotFoundError:
-        print("Fout: profiel.json niet gevonden.")
-        return None
-
+def voeg_uren_toe(mijn_selectie, profiel):
     uren_per_dag = profiel.get("uren_per_dag", {})
 
     # Mapping van volledige dagnaam naar korte dagnaam zoals in profiel.json
@@ -173,14 +166,7 @@ def voeg_uren_toe(mijn_selectie):
 
 
 # --- FUNCTIE 4: VOEG ADRESSEN EN KANTOORDAG TOE ---
-def voeg_adressen_en_kantoordag_toe(df_met_uren):
-    try:
-        with open("profiel.json", "r") as f:
-            profiel = json.load(f)
-    except FileNotFoundError:
-        print("Fout: profiel.json niet gevonden.")
-        return None
-
+def voeg_adressen_en_kantoordag_toe(df_met_uren, profiel):
     adres_huis = profiel.get("adres_huis", "")
     adres_werk = profiel.get("adres_opdrachtgever", "")
     standaard_kantoordagen = profiel.get("standaard_kantoordagen", [])
@@ -240,14 +226,7 @@ def voeg_adressen_en_kantoordag_toe(df_met_uren):
 
 
 # --- FUNCTIE 5: VOEG STANDAARD PROJECTGEGEVENS TOE ---
-def voeg_projectgegevens_toe(df_compleet):
-    try:
-        with open("profiel.json", "r") as f:
-            profiel = json.load(f)
-    except FileNotFoundError:
-        print("Fout: profiel.json niet gevonden.")
-        return None
-
+def voeg_projectgegevens_toe(df_compleet, profiel):
     klant = profiel.get("standaard_klant", "")
     project = profiel.get("standaard_project", "")
     activiteit = profiel.get("standaard_activiteit", "")
@@ -261,14 +240,7 @@ def voeg_projectgegevens_toe(df_compleet):
 
 
 # --- FUNCTIE 6: CONTROLEER CONTRACTUREN ---
-def controleer_en_vul_contracturen(df_final):
-    try:
-        with open("profiel.json", "r") as f:
-            profiel = json.load(f)
-    except FileNotFoundError:
-        print("Fout: profiel.json niet gevonden.")
-        return df_final
-
+def controleer_en_vul_contracturen(df_final, profiel):
     contract_uren = profiel.get("contract_uren")
     if not contract_uren:
         print("Geen contracturen gevonden in profiel. Sla controle over.")
@@ -351,6 +323,13 @@ def controleer_en_vul_contracturen(df_final):
 
 # --- HOOFDPROGRAMMA ---
 if __name__ == "__main__":
+    # Voor testen: laad profiel even lokaal
+    try:
+        with open("profiel.json", "r") as f:
+            test_profiel = json.load(f)
+    except:
+        test_profiel = {}
+
     # 1. Tabel genereren
     print("Kalender genereren...")
     df_kalender = genereer_nederlandse_kalender()
@@ -375,20 +354,20 @@ if __name__ == "__main__":
 
         # 4. Uren toevoegen
         print("\n--- Uren berekenen op basis van profiel ---")
-        df_met_uren = voeg_uren_toe(mijn_selectie)
+        df_met_uren = voeg_uren_toe(mijn_selectie, test_profiel)
         if df_met_uren is not None:
             # Test nieuwe functie (mock RBI_friday kolom als die er niet is)
             if "RBI_friday" not in df_met_uren.columns:
                 df_met_uren["RBI_friday"] = "nee"
 
             print("\n--- Adressen en kantoordagen toevoegen ---")
-            df_compleet = voeg_adressen_en_kantoordag_toe(df_met_uren)
+            df_compleet = voeg_adressen_en_kantoordag_toe(df_met_uren, test_profiel)
             if df_compleet is not None:
                 print("\n--- Projectgegevens toevoegen ---")
-                df_final = voeg_projectgegevens_toe(df_compleet)
+                df_final = voeg_projectgegevens_toe(df_compleet, test_profiel)
 
                 print("\n--- Contracturen controleren ---")
-                df_final = controleer_en_vul_contracturen(df_final)
+                df_final = controleer_en_vul_contracturen(df_final, test_profiel)
                 print(df_final)
 
     else:

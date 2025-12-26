@@ -32,5 +32,18 @@ def check_bestanden(bestanden):
             )
 
 
+def clear():
+    # Check if we are in a Jupyter/IPython environment
+    try:
+        from IPython.display import clear_output
+
+        clear_output(wait=True)
+    except ImportError:
+        pass
+
+    # Standard terminal clear
+    os.system("cls" if os.name == "nt" else "clear")
+
+
 if __name__ == "__main__":
     if_env_exists()

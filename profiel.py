@@ -43,7 +43,6 @@ def vraag_adres(type_adres):
 
 def toon_profiel_samenvatting(profiel):
     """Print een nette samenvatting van het geladen profiel."""
-    time.sleep(1)
     print("\n📋 ..::: Profiel Samenvatting :::..")
 
     print("   🕒 Uren per dag:")
