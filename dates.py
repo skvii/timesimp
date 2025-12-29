@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime
 import json
+import cfg
 
 # --- CONFIGURATIE ---
 # Hulptabel om van maandnaam naar nummer te gaan (nodig voor de range-functie)
@@ -195,7 +196,7 @@ def voeg_adressen_en_kantoordag_toe(df_met_uren, profiel):
 
         # 2. Adres naar
         if rbi_friday == "ja":
-            adres_naar_lijst.append("Europalaan 500, Utrecht, Nederland")
+            adres_naar_lijst.append(cfg.ADRES_RBI)
         else:
             adres_naar_lijst.append(adres_werk)
 
@@ -288,9 +289,9 @@ def controleer_en_vul_contracturen(df_final, profiel):
                     bron_rij["aantal uren"] = tekort
 
                     # Pas klant, project en activiteit aan
-                    bron_rij["klant"] = "RBI Solutions"
-                    bron_rij["project"] = "Intern"
-                    bron_rij["activiteit"] = "Overig Intern"
+                    bron_rij["klant"] = cfg.INTERN_KLANT
+                    bron_rij["project"] = cfg.INTERN_PROJECT
+                    bron_rij["activiteit"] = cfg.INTERN_ACTIVITEIT
 
                     # Verwijder de tijdelijke kolommen uit de bron_rij voordat we hem opslaan
                     # (anders krijgen we warnings bij concat als we ze later droppen)

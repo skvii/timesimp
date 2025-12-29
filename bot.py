@@ -10,18 +10,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
+import cfg  # Importeer de configuratie
 
 # --- CONFIGURATIE ---
 load_dotenv()
 EMAIL = os.getenv("TIMECHIMP_EMAIL")
 WACHTWOORD = os.getenv("TIMECHIMP_PASSWORD")
 
-BASE_URL = "https://app.timechimp.com/auth/login"
-# We gebruiken 1 bestand voor alles (cookies + local storage)
-SESSIE_MAP = "cookies"
-SESSIE_BESTAND = "timechimp_compleet.pkl"
-SESSIE_PAD = os.path.join(SESSIE_MAP, SESSIE_BESTAND)
-PROFIEL_BESTAND = "profiel.json"
+# Overige constanten halen we nu uit cfg.py (cfg.BASE_URL, cfg.SESSIE_PAD, etc.)
 
 
 # --- FUNCTIES ---
@@ -60,7 +56,7 @@ def sluit_alle_andere_tabbladen(driver):
 def klik_cookie_popup_weg(driver):
     """Probeert de cookie banner weg te klikken."""
     try:
-        wait = WebDriverWait(driver, 5)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_SHORT)
         knop = wait.until(
             EC.presence_of_element_located(
                 (By.ID, "CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll")
@@ -75,8 +71,8 @@ def klik_cookie_popup_weg(driver):
 
 def sla_sessie_op(driver):
     """Slaat Cookies EN Local Storage op."""
-    if not os.path.exists(SESSIE_MAP):
-        os.makedirs(SESSIE_MAP)
+    if not os.path.exists(cfg.SESSIE_MAP):
+        os.makedirs(cfg.SESSIE_MAP)
 
     try:
         # 1. Haal Cookies op
@@ -90,11 +86,11 @@ def sla_sessie_op(driver):
 
         sessie_data = {"cookies": cookies, "local_storage": local_storage}
 
-        with open(SESSIE_PAD, "wb") as file:
+        with open(cfg.SESSIE_PAD, "wb") as file:
             pickle.dump(sessie_data, file)
 
         print(
-            f"💾 Volledige sessie (Cookies + LocalStorage) opgeslagen in: {SESSIE_PAD}"
+            f"💾 Volledige sessie (Cookies + LocalStorage) opgeslagen in: {cfg.SESSIE_PAD}"
         )
     except Exception as e:
         print(f"❌ Kon sessie niet opslaan: {e}")
@@ -102,17 +98,17 @@ def sla_sessie_op(driver):
 
 def laad_sessie_in(driver):
     """Laadt Cookies EN Local Storage in."""
-    if not os.path.exists(SESSIE_PAD):
+    if not os.path.exists(cfg.SESSIE_PAD):
         return False
 
     print("📦 Oude sessie gevonden. Inladen...")
     try:
         # Eerst naar de site gaan, anders mag je geen opslag aanpassen
         if "timechimp.com" not in driver.current_url:
-            driver.get(BASE_URL)
+            driver.get(cfg.BASE_URL)
             time.sleep(2)
 
-        with open(SESSIE_PAD, "rb") as file:
+        with open(cfg.SESSIE_PAD, "rb") as file:
             data = pickle.load(file)
 
         # 1. Cookies herstellen
@@ -157,11 +153,11 @@ def laad_sessie_in(driver):
 def login_met_wachtwoord(driver):
     """Volledige login procedure."""
     print("⌨️ Handmatig inloggen...")
-    if "auth/login" not in driver.current_url:
-        driver.get(BASE_URL)
+    if "auth/login" not in driver.current_url and "login" not in driver.current_url:
+        driver.get(cfg.BASE_URL)
 
     klik_cookie_popup_weg(driver)
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, cfg.TIMEOUT_LONG)
 
     try:
         wait.until(EC.element_to_be_clickable((By.NAME, "username"))).send_keys(EMAIL)
@@ -184,7 +180,7 @@ def klik_dag_knop(driver):
     """Zoekt de knop met tekst 'Dag' en klikt erop."""
     print("🔍 Zoeken naar 'Dag' knop...")
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
         xpath = "//button[.//span[text()='Dag']]"
         knop = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
         knop.click()
@@ -197,7 +193,7 @@ def klik_agenda(driver):
     """Klikt op de agenda knop in de kalender container."""
     print("🔍 Zoeken naar Agenda knop...")
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
         knop = wait.until(
             EC.element_to_be_clickable(
                 (By.CSS_SELECTOR, "section[aria-label='Calendar container'] button")
@@ -212,15 +208,15 @@ def klik_agenda(driver):
 def update_profiel(nieuwe_data):
     """Voegt nieuwe data toe aan profiel.json."""
     try:
-        if os.path.exists(PROFIEL_BESTAND):
-            with open(PROFIEL_BESTAND, "r") as f:
+        if os.path.exists(cfg.PROFIEL_BESTAND):
+            with open(cfg.PROFIEL_BESTAND, "r") as f:
                 profiel = json.load(f)
         else:
             profiel = {}
 
         profiel.update(nieuwe_data)
 
-        with open(PROFIEL_BESTAND, "w") as f:
+        with open(cfg.PROFIEL_BESTAND, "w") as f:
             json.dump(profiel, f, indent=4)
         print(f"💾 Profiel bijgewerkt met: {list(nieuwe_data.keys())}")
     except Exception as e:
@@ -234,7 +230,7 @@ def kies_uit_dropdown(driver, input_id, naam_veld):
     """
     print(f"\n🔍 Zoeken naar dropdown: {naam_veld}...")
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
 
         dropdown_input = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
         dropdown_input.click()
@@ -321,7 +317,7 @@ def selecteer_klant_project_activiteit(driver):
 def vul_dropdown_automatisch(driver, input_id, waarde):
     """Vult een React-Select dropdown in op basis van tekst en drukt op Tab."""
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
         elem = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
 
         # Scroll naar het element om zeker te zijn dat het zichtbaar is (niet onder een header/kalender)
@@ -337,7 +333,7 @@ def vul_dropdown_automatisch(driver, input_id, waarde):
 def zet_toggle_aan(driver, input_id):
     """Zorgt dat een toggle (bijv. switch) op 'checked' staat."""
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
         # Gebruik CSS selector voor ID's met speciale tekens (zoals :r3:)
         elem = wait.until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, f"[id='{input_id}']"))
@@ -356,7 +352,7 @@ def zet_toggle_aan(driver, input_id):
 def vul_adres_in(driver, input_id, waarde):
     """Vult een adres in, wacht op de suggesties en selecteert de eerste."""
     try:
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
         elem = wait.until(EC.element_to_be_clickable((By.ID, input_id)))
 
         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elem)
@@ -371,7 +367,7 @@ def vul_adres_in(driver, input_id, waarde):
         except:
             pass  # Als het wachten faalt (timeout), proberen we het alsnog
 
-        time.sleep(1.5)  # Iets langere pauze zodat de opties zeker geladen zijn
+        time.sleep(cfg.SLEEP_VULADRESIN) #pauze zodat alles geladen wordt
         elem.send_keys(Keys.ARROW_DOWN)
         elem.send_keys(Keys.TAB)
 
@@ -403,19 +399,19 @@ def verwerk_uren_excel(driver):
     """Leest uren.xlsx en selecteert voor elke regel de juiste datum in de kalender."""
     print("\n📂 Uren bestand laden en verwerken...")
 
-    if not os.path.exists("uren.xlsx"):
-        print("❌ Bestand 'uren.xlsx' niet gevonden.")
+    if not os.path.exists(cfg.EXCEL_UREN):
+        print(f"❌ Bestand '{cfg.EXCEL_UREN}' niet gevonden.")
         return
 
     try:
-        df = pd.read_excel("uren.xlsx")
+        df = pd.read_excel(cfg.EXCEL_UREN)
         # Zorg dat datum kolom datetime objecten zijn
         df["datum"] = pd.to_datetime(df["datum"])
     except Exception as e:
         print(f"❌ Fout bij lezen Excel: {e}")
         return
 
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
 
     for index, row in df.iterrows():
         datum = row["datum"]
@@ -472,9 +468,7 @@ def verwerk_uren_excel(driver):
             # 6. Tijden invullen
             # Starttijd (vast op 09:00)
             start_input = driver.find_element(By.ID, "start")
-            start_input.send_keys(Keys.CONTROL + "a")
-            start_input.send_keys(Keys.BACKSPACE)
-            start_input.send_keys("09:00")
+            start_input.send_keys(cfg.TIJD_START)
 
             # Eindtijd berekenen (9 + aantal uren)
             time.sleep(0.1)
@@ -504,19 +498,19 @@ def verwerk_uren_excel(driver):
 def verwerk_ritten_excel(driver):
     print("\n📂 Ritten bestand laden en verwerken...")
 
-    if not os.path.exists("ritten.xlsx"):
-        print("❌ Bestand 'ritten.xlsx' niet gevonden.")
+    if not os.path.exists(cfg.EXCEL_RITTEN):
+        print(f"❌ Bestand '{cfg.EXCEL_RITTEN}' niet gevonden.")
         return
 
     try:
-        df = pd.read_excel("ritten.xlsx")
+        df = pd.read_excel(cfg.EXCEL_RITTEN)
         # Zorg dat datum kolom datetime objecten zijn
         df["datum"] = pd.to_datetime(df["datum"])
     except Exception as e:
         print(f"❌ Fout bij lezen Excel: {e}")
         return
 
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, cfg.TIMEOUT_STD)
 
     for index, row in df.iterrows():
         datum = row["datum"]
@@ -587,7 +581,7 @@ def verwerk_ritten_excel(driver):
             
             print(f"   💾 Rit opgeslagen: {row['adres_van']} -> {row['adres_naar']}")
             driver.refresh()
-            time.sleep(3) # Korte pauze voor volgende iteratie
+            time.sleep(cfg.SLEEP_VERWERKRITTENEXCEL_NEXTITEM) # Korte pauze voor volgende iteratie
 
         except Exception as e:
             print(f"   ❌ Fout bij regel {index + 1}: {e}")
@@ -598,7 +592,7 @@ def main():
     """Hoofdfunctie om de bot te draaien. Geeft de driver instance terug."""
     driver = start_driver()
 
-    driver.get(BASE_URL)
+    driver.get(cfg.BASE_URL)
 
     ingelogd = False
     if laad_sessie_in(driver):
@@ -619,14 +613,13 @@ def main():
     return driver
 
 
-def nieuwe_automatisering():
+def uren_invullen():
     """Nieuwe functie voor extra automatisering."""
     driver = start_en_login()
     if driver:
         print("🚀 Start nieuwe automatisering...")
-        driver.get("https://app.timechimp.com/registration/time/day")
+        driver.get(cfg.URL_UREN_DAG)
         verwerk_uren_excel(driver)
-
     return driver
 
 
@@ -635,7 +628,7 @@ def ritten_invullen():
     driver = start_en_login()
     if driver:
         print("🚀 Start nieuwe automatisering...")
-        driver.get("https://app.timechimp.com/registration/mileage")
+        driver.get(cfg.URL_RITTEN)
         verwerk_ritten_excel(driver)
     return driver
 

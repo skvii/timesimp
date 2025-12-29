@@ -1,8 +1,7 @@
 import json
 import os
 import time
-
-PROFIEL_BESTAND = "profiel.json"
+import cfg
 
 
 def vraag_en_valideer(vraag, type_conversie=str):
@@ -111,9 +110,9 @@ def maak_profiel_aan():
     }
 
     try:
-        with open(PROFIEL_BESTAND, "w") as f:
+        with open(cfg.PROFIEL_BESTAND, "w") as f:
             json.dump(profiel, f, indent=4)
-        print(f"\n✅ Profiel opgeslagen in {PROFIEL_BESTAND}")
+        print(f"\n✅ Profiel opgeslagen in {cfg.PROFIEL_BESTAND}")
         toon_profiel_samenvatting(profiel)
         return profiel
     except Exception as e:
@@ -127,10 +126,10 @@ def laad_of_maak_profiel():
     Zo ja, laadt het en toont een samenvatting.
     Zo nee, start de procedure om het aan te maken.
     """
-    if os.path.exists(PROFIEL_BESTAND):
-        print(f"✅ Profiel ({PROFIEL_BESTAND}) gevonden.")
+    if os.path.exists(cfg.PROFIEL_BESTAND):
+        print(f"✅ Profiel ({cfg.PROFIEL_BESTAND}) gevonden.")
         try:
-            with open(PROFIEL_BESTAND, "r") as f:
+            with open(cfg.PROFIEL_BESTAND, "r") as f:
                 profiel = json.load(f)
 
             # Check of contract_uren bestaat, zo niet, vraag erom en sla op
@@ -140,7 +139,7 @@ def laad_of_maak_profiel():
                     "Hoeveel uur is je contract per week? (bv. 32, 36, 40): ", float
                 )
                 profiel["contract_uren"] = contract_uren
-                with open(PROFIEL_BESTAND, "w") as f_out:
+                with open(cfg.PROFIEL_BESTAND, "w") as f_out:
                     json.dump(profiel, f_out, indent=4)
                 print("✅ Contracturen toegevoegd aan profiel.")
 
@@ -148,7 +147,7 @@ def laad_of_maak_profiel():
             return profiel
 
         except json.JSONDecodeError:
-            print(f"❌ Fout: {PROFIEL_BESTAND} is beschadigd of leeg.")
+            print(f"❌ Fout: {cfg.PROFIEL_BESTAND} is beschadigd of leeg.")
             keuze = input("Wil je een nieuw profiel aanmaken? (j/n): ").lower()
             if keuze == "j":
                 return maak_profiel_aan()
@@ -159,5 +158,5 @@ def laad_of_maak_profiel():
             print(f"❌ Onverwachte fout bij laden profiel: {e}")
             exit()
     else:
-        print(f"⚠️ Profiel ({PROFIEL_BESTAND}) niet gevonden.")
+        print(f"⚠️ Profiel ({cfg.PROFIEL_BESTAND}) niet gevonden.")
         return maak_profiel_aan()

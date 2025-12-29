@@ -1,5 +1,5 @@
 # Dit is het hoofdbestand om de verschillende onderdelen van het project aan te sturen.
-from ifexists import if_env_exists, check_bestanden, clear
+from ifexists import if_env_exists, check_bestanden
 from profiel import laad_of_maak_profiel
 from dates import (
     genereer_nederlandse_kalender,
@@ -11,12 +11,11 @@ from dates import (
 )
 from bot import (
     main as run_bot_main,
-    nieuwe_automatisering,
+    uren_invullen,
     ritten_invullen,
 )
 
 import pandas as pd
-import time
 import sys
 
 print("-- check 1: bestaat .env bestand?")
@@ -252,22 +251,22 @@ print(
 print(
     "   Als je nog geen template hebt gemaakt, start het script dan opnieuw en kies 'j' bij Stap 4."
 )
-startornot = input(
+start_or_not = input(
     "\nDruk op ENTER om de automatisering te starten... (of q om te sluiten)"
 ).lower()
-if startornot == "q":
+if start_or_not == "q":
     sys.exit()
 
-run_mileageorhours = input(
+run_mileage_or_hours = input(
     "\nWat wil je doen?\n⏱️ 1. Uren boeken\n🚗 2. Ritten boeken\n🔃 3. Uren & ritten boeken\nKeuze: "
 )
 
-if run_mileageorhours == "1":
-    nieuwe_automatisering()
-elif run_mileageorhours == "2":
+if run_mileage_or_hours == "1":
+    uren_invullen()
+elif run_mileage_or_hours == "2":
     ritten_invullen()
-elif run_mileageorhours == "3":
-    nieuwe_automatisering()
+elif run_mileage_or_hours == "3":
+    uren_invullen()
     ritten_invullen()
 
 sys.exit()
